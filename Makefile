@@ -1,36 +1,25 @@
-NAME = minitalk
-CC = cc
-CFLAGS = -Wall -Wextra -Werror
+NAME			=	minitalk
+CLIENT			=	client
+SERVER			=	server
+CC				=	cc
+CFLAGS			=	-Wall -Wextra -Werror
+RM				=	rm -rf
 
-CLIENT_SRC = client.c
-SERVER_SRC = server.c
+all:			$(NAME)
 
-CLIENT_OBJ = $(CLIENT_SRC:.c=.o)
-SERVER_OBJ = $(SERVER_SRC:.c=.o)
+$(NAME): $(SERVER) $(CLIENT)
 
-CLIENT = client
-SERVER = server
+${CLIENT}:		ft_client.c
+				${CC} ${CFLAGS} -o client ft_client.c
 
-$(NAME) : $(CLIENT) $(SERVER)
-
-all: $(NAME)
-
-$(CLIENT): $(CLIENT_OBJ)
-	$(CC) $(CFLAGS) -o $(CLIENT) $(CLIENT_OBJ)
-
-$(SERVER): $(SERVER_OBJ)
-	$(CC) $(CFLAGS) -o $(SERVER) $(SERVER_OBJ)
-
-
-%.o: %.c
-	$(CC) $(CFLAGS) -c $< -o $@
-
+${SERVER}:		ft_server.c
+				${CC} ${CFLAGS} -o server ft_server.c
+	
 clean:
-	rm -f $(CLIENT_OBJ) $(SERVER_OBJ)
+				$(RM) $(SERVER) $(CLIENT)
 
-fclean: clean
-	rm -f $(CLIENT) $(SERVER)
+fclean:			clean
 
-re: fclean all
+re:				clean all
 
-.PHONY: all clean fclean re
+.PHONY:			all $(NAME) clean fclean re
