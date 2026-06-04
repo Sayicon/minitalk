@@ -1,12 +1,14 @@
+<img src="https://capsule-render.vercel.app/api?type=waving&color=0:00BABC,100:005f73&height=180&section=header&text=minitalk&fontSize=55&fontColor=fff&animation=fadeIn&fontAlignY=36" width="100%"/>
+
 <div align="center">
 
-# minitalk
-
-**SIGUSR1 ve SIGUSR2 sinyalleri aracılığıyla iki proses arasında mesaj iletimi.**
-
-[![Language](https://img.shields.io/badge/language-C-00599C?style=for-the-badge&logo=c)](https://en.wikipedia.org/wiki/C_(programming_language))
+[![Language](https://img.shields.io/badge/language-C-00599C?style=for-the-badge&logo=c&logoColor=white)](https://en.wikipedia.org/wiki/C_(programming_language))
 [![School](https://img.shields.io/badge/42-Kocaeli-00BABC?style=for-the-badge)](https://42kocaeli.com.tr/)
 [![Norm](https://img.shields.io/badge/norminette-passing-brightgreen?style=for-the-badge)](https://github.com/42School/norminette)
+[![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20macOS-lightgrey?style=for-the-badge&logo=linux)](https://en.wikipedia.org/wiki/Unix)
+![Visitor](https://visitor-badge.laobi.icu/badge?page_id=Sayicon.minitalk)
+
+**SIGUSR1 ve SIGUSR2 sinyalleri aracılığıyla iki proses arasında mesaj iletimi.**
 
 </div>
 
@@ -20,22 +22,27 @@
 
 ## Mimari
 
-```
-CLIENT                         SERVER
-  │                               │
-  │  PID al                       │  Başlat
-  │                               │  PID yaz
-  │                               │  Sinyal bekle
-  │                               │
-  │──── SIGUSR2 (bit=1) ─────────►│  bit: 1
-  │──── SIGUSR1 (bit=0) ─────────►│  bit: 0
-  │──── SIGUSR2 (bit=1) ─────────►│  bit: 1
-  │         ... (8 bit) ...       │
-  │◄─── SIGUSR1 (onay) ──────────│  karakter hazır → yaz
-  │                               │
-  │  (sonraki karakter)           │
-  │──── ...8 bit... ─────────────►│
-  │◄─── SIGUSR1 (onay) ──────────│
+```mermaid
+sequenceDiagram
+    participant C as 🖥️ CLIENT
+    participant S as 🗄️ SERVER
+
+    Note over S: Başlatıldı
+    S-->>S: PID yazdır & sinyal bekle
+
+    Note over C: ./client PID "Mesaj"
+
+    loop Her karakter için (8 bit)
+        C->>S: SIGUSR2 (bit = 1)
+        S->>C: SIGUSR1 (onay ✓)
+        C->>S: SIGUSR1 (bit = 0)
+        S->>C: SIGUSR1 (onay ✓)
+        Note over S: 8 bit tamamlandı → karakter yaz
+    end
+
+    C->>S: NULL sonlandırıcı ('\0')
+    S-->>S: Newline yazdır
+    Note over S: Mesaj alındı ✅
 ```
 
 ---
@@ -57,7 +64,7 @@ Bit 1       = 0 → SIGUSR1
 Bit 0 (LSB) = 1 → SIGUSR2
 ```
 
-Server tarafında bit birikimleri:
+Server tarafında bit birikimi:
 ```c
 c |= 1 << (7 - recived_count);   // SIGUSR2 = bit 1
 // SIGUSR1 geldiğinde hiçbir şey yapılmaz = bit 0
@@ -85,29 +92,17 @@ make re       # yeniden derle
 
 ## Kullanım
 
-### 1. Server'ı Başlat
-
+**Terminal 1 — Server'ı başlat:**
 ```bash
 ./server
+# Server PID: 12345
 ```
 
-```
-Server PID: 12345
-Sinyal bekleniyor...
-```
-
-### 2. Client ile Mesaj Gönder
-
+**Terminal 2 — Mesaj gönder:**
 ```bash
 ./client 12345 "Merhaba, Dünya!"
+# Terminal 1'de görünür: Merhaba, Dünya!
 ```
-
-Server terminalinde görünür:
-```
-Merhaba, Dünya!
-```
-
-> Farklı iki terminal penceresi gerekir.
 
 ---
 
@@ -148,19 +143,32 @@ minitalk/
 
 ## Sinyaller Hakkında
 
-| Sinyal | Değer | Kullanım |
-|--------|-------|----------|
-| `SIGUSR1` | 10 | bit=0 veya onay sinyali |
-| `SIGUSR2` | 12 | bit=1 |
+| Sinyal | Numara | Platform | Kullanım |
+|--------|:------:|----------|----------|
+| `SIGUSR1` | 10 | Linux / macOS | bit=0 veya onay sinyali |
+| `SIGUSR2` | 12 | Linux / macOS | bit=1 |
 
-> POSIX'te `SIGUSR1` ve `SIGUSR2` kullanıcı tanımlı sinyallerdir. Linux ve macOS'ta varsayılan olarak mevcuttur.
+> `SIGUSR1` ve `SIGUSR2` POSIX standardında kullanıcı tanımlı sinyallerdir. Linux ve macOS'ta yerleşik olarak mevcuttur.
+
+### Windows Kullanıcıları İçin
+
+`SIGUSR1` ve `SIGUSR2`, **Windows'ta doğrudan desteklenmez** (POSIX sinyalleri). Windows'ta bu projeyi çalıştırmak için seçenekler:
+
+| Yöntem | Açıklama |
+|--------|----------|
+| **WSL2** (önerilen) | Windows Subsystem for Linux — tam Linux sinyal desteği |
+| **Cygwin / MSYS2** | POSIX uyumluluk katmanı, `SIGUSR1`/`SIGUSR2` emüle eder |
+| **Windows Signals** | `SIGBREAK` (21) ve `SIGTERM` (15) kullanılabilir fakat tam uyumlu değil |
+| **Named Pipes / Mailslot** | Windows'a özgü IPC alternatifleri |
+
+> Bu proje Unix/Linux ortamı için tasarlanmıştır. Geliştirme için WSL2 kullanılması önerilir.
 
 ---
 
 <div align="center">
 
-*42 Kocaeli — minitalk projesi*
-
-[![GitHub](https://img.shields.io/badge/GitHub-Sayicon-181717?style=flat-square&logo=github)](https://github.com/Sayicon)
+[![GitHub](https://img.shields.io/badge/GitHub-Sayicon-181717?style=for-the-badge&logo=github)](https://github.com/Sayicon)
 
 </div>
+
+<img src="https://capsule-render.vercel.app/api?type=waving&color=0:005f73,100:00BABC&height=100&section=footer" width="100%"/>
